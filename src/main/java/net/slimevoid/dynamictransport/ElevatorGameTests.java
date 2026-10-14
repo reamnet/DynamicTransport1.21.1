@@ -464,4 +464,75 @@ public final class ElevatorGameTests {
         "Unbound markers must explain that binding is missing");
     helper.succeed();
   }
+
+  @GameTest(template = "empty")
+  public static void floorNamesDefaultToHeightAndCanBeRenamedOrReset(GameTestHelper helper) {
+    var c = setup(helper, false);
+    var marker = (TransportBlockEntity) helper.getBlockEntity(MARKER);
+    var player = helper.makeMockPlayer(net.minecraft.world.level.GameType.CREATIVE);
+    var pos = marker.getBlockPos();
+    player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+    c.maintenance = true;
+    c.technician = player.getUUID();
+    var info = new CompoundTag();
+    info.putBoolean("Editing", true);
+    var menu = new TransportMenu(1, player.getInventory(), pos, info);
+    int originalY = pos.getY() + marker.offset;
+    helper.assertTrue(
+        TransportMenu.floorLabel(marker.name, originalY).getString().equals("Y " + originalY),
+        "New markers must display their stop Y rather than an empty name");
+    helper.assertTrue(
+        menu.configure(player, "  Lobby  ", pos.getY() - 1),
+        "Technician should be able to rename the floor");
+    helper.assertTrue(
+        marker.name.equals("Lobby") && c.floors().get(pos.getY() - 1).equals("Lobby"),
+        "Trimmed name must appear in the actual controller's floor list");
+    var saved = marker.saveWithoutMetadata(helper.getLevel().registryAccess());
+    var restored = new TransportBlockEntity(pos, marker.getBlockState());
+    restored.loadCustomOnly(saved, helper.getLevel().registryAccess());
+    helper.assertTrue(
+        restored.name.equals("Lobby") && restored.offset == -1,
+        "Renaming and height must survive a world save");
+    helper.assertTrue(
+        menu.configure(player, "   ", pos.getY() + 1),
+        "Clearing a name should restore automatic naming");
+    helper.assertTrue(
+        marker.name.isEmpty()
+            && TransportMenu.floorLabel(marker.name, pos.getY() + 1)
+                .getString()
+                .equals("Y " + (pos.getY() + 1)),
+        "Automatic names must follow a changed stop height");
+    helper.assertTrue(
+        !c.floors().containsKey(originalY) && c.floors().containsKey(pos.getY() + 1),
+        "Changing the label must not leave an obsolete destination in the floor list");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty")
+  public static void floorSelectorReceivesNamesAndCurrentStop(GameTestHelper helper) {
+    var c = setup(helper, false);
+    var marker = (TransportBlockEntity) helper.getBlockEntity(MARKER);
+    marker.name = "Workshop";
+    var player = helper.makeMockServerPlayerInLevel();
+    enableMenuChannel(player);
+    player.setItemInHand(
+        net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY);
+    try {
+      clickWithTool(helper, player, MARKER, false);
+      var menu = (TransportMenu) player.containerMenu;
+      var first = menu.info.getList("Floors", 10).getCompound(0);
+      helper.assertTrue(
+          TransportMenu.floorLabel(first.getString("Name"), first.getInt("Y"))
+              .getString()
+              .equals("Workshop"),
+          "The actual floor-selector menu must carry the saved human-readable name");
+      helper.assertTrue(
+          menu.info.getInt("CurrentFloor") == c.floor && !menu.info.getBoolean("InTransit"),
+          "The selector must know the current stop to show You are here correctly");
+      player.closeContainer();
+      helper.succeed();
+    } finally {
+      helper.getLevel().getServer().getPlayerList().remove(player);
+    }
+  }
 }

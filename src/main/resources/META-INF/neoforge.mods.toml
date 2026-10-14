@@ -3,7 +3,7 @@ loaderVersion="[4,)"
 license="Lesser General Public Licence (original project declaration)"
 [[mods]]
 modId="dynamictransport"
-version="1.0.2"
+version="1.0.3"
 displayName="Dynamic Transport"
 authors="Slime Void Crew"
 description="""Configurable, moving multiblock elevators for NeoForge."""

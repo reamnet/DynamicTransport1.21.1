@@ -305,6 +305,9 @@ public final class TransportBlockEntity extends BlockEntity {
     info.putBoolean("Marker", kind() == TransportBlock.Kind.MARKER);
     info.putString("Name", name);
     info.putInt("Floor", worldPosition.getY() + offset);
+    info.putInt("CurrentFloor", c.floor);
+    info.putBoolean("InTransit", c.inTransit);
+    info.putString("ElevatorName", c.name);
     ListTag list = new ListTag();
     c.floors()
         .forEach(
@@ -319,7 +322,11 @@ public final class TransportBlockEntity extends BlockEntity {
         new SimpleMenuProvider(
             (id, inventory, p) -> new TransportMenu(id, inventory, worldPosition, info),
             Component.translatable(
-                editing ? "screen.dynamictransport.configure" : "screen.dynamictransport.floors")),
+                editing
+                    ? (kind() == TransportBlock.Kind.MARKER
+                        ? "screen.dynamictransport.configure_floor"
+                        : "screen.dynamictransport.configure_elevator")
+                    : "screen.dynamictransport.floors")),
         buf -> {
           buf.writeBlockPos(worldPosition);
           buf.writeNbt(info);

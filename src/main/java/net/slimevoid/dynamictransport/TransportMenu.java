@@ -3,6 +3,7 @@ package net.slimevoid.dynamictransport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.*;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
@@ -11,6 +12,11 @@ public final class TransportMenu extends AbstractContainerMenu {
   public final BlockPos pos;
   public final CompoundTag info;
   final Inventory inventory;
+
+  /** Blank names remain automatic rather than storing a coordinate that can go stale. */
+  public static Component floorLabel(String name, int y) {
+    return name.isBlank() ? Component.literal("Y " + y) : Component.literal(name.strip());
+  }
 
   public TransportMenu(int id, Inventory inventory, RegistryFriendlyByteBuf buf) {
     this(id, inventory, buf.readBlockPos(), buf.readNbt());
@@ -58,7 +64,7 @@ public final class TransportMenu extends AbstractContainerMenu {
       if (y < pos.getY() - 2 || y > pos.getY() + 2) return false;
       tile.offset = y - pos.getY();
     }
-    tile.name = name;
+    tile.name = name.strip();
     tile.changed();
     return true;
   }
