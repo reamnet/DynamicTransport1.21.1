@@ -53,6 +53,24 @@ public final class TransportBlockEntity extends BlockEntity {
     return maintenance && p.getUUID().equals(technician);
   }
 
+  /** Uses synchronized block and tool data so the client highlights only the selected elevator. */
+  public boolean isSelectedForMaintenance(Player player) {
+    if (player == null || level == null) return false;
+    var c = computer();
+    if (c == null || !c.canMaintain(player)) return false;
+    for (InteractionHand hand : InteractionHand.values()) {
+      ItemStack held = player.getItemInHand(hand);
+      if (!held.is(DynamicTransport.TOOL.get())) continue;
+      var selected = held.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+      if (selected.contains("Controller")
+          && selected.getLong("Controller") == c.worldPosition.asLong()
+          && selected.getString("Dimension").equals(level.dimension().location().toString())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void changed() {
     setChanged();
     if (level != null) {
@@ -73,6 +91,15 @@ public final class TransportBlockEntity extends BlockEntity {
 
   void interact(Player player, InteractionHand hand, Direction side) {
     ItemStack held = player.getItemInHand(hand);
+    // A floor marker is a public call control while the elevator is in service, including
+    // when the player still holds a setup tool. Maintenance keeps the tool's configure action.
+    if (kind() == TransportBlock.Kind.MARKER && !player.isShiftKeyDown()) {
+      var c = computer();
+      if (c != null && !c.maintenance && !c.pendingMaintenance) {
+        open(player, false);
+        return;
+      }
+    }
     if (held.is(DynamicTransport.TOOL.get())) {
       if (kind() == TransportBlock.Kind.COMPUTER && player.isShiftKeyDown()) {
         toggleMaintenance(player, held);
@@ -85,11 +112,20 @@ public final class TransportBlockEntity extends BlockEntity {
         return;
       }
       BlockPos selected = BlockPos.of(data.getLong("Controller"));
-      if (!level.hasChunkAt(selected)
-          || !(level.getBlockEntity(selected) instanceof TransportBlockEntity c)
-          || c.kind() != TransportBlock.Kind.COMPUTER
-          || !c.canMaintain(player)) {
-        message(player, "maintenance_required");
+      if (!level.hasChunkAt(selected)) {
+        message(player, "computer_unloaded");
+        return;
+      }
+      if (!(level.getBlockEntity(selected) instanceof TransportBlockEntity c)
+          || c.kind() != TransportBlock.Kind.COMPUTER) {
+        message(player, "computer_missing");
+        return;
+      }
+      if (!c.canMaintain(player)) {
+        if (c.technician != null && !player.getUUID().equals(c.technician))
+          message(player, "technician_busy");
+        else if (c.pendingMaintenance) message(player, "maintenance_pending");
+        else message(player, "maintenance_required");
         return;
       }
       if (kind() == TransportBlock.Kind.COMPUTER) {
@@ -158,7 +194,9 @@ public final class TransportBlockEntity extends BlockEntity {
     if (c != null && !c.maintenance && !c.pendingMaintenance) {
       if (kind() != TransportBlock.Kind.ELEVATOR || (overlay & (1 << side.get3DDataValue())) != 0)
         open(player, false);
-    } else message(player, "maintenance_required");
+    } else if (c == null) message(player, "unbound_component");
+    else if (c.pendingMaintenance) message(player, "maintenance_pending");
+    else message(player, "maintenance_active");
   }
 
   int home() {
@@ -195,7 +233,7 @@ public final class TransportBlockEntity extends BlockEntity {
     data.putString("Dimension", level.dimension().location().toString());
     tool.set(DataComponents.CUSTOM_DATA, CustomData.of(data));
     changed();
-    message(player, "maintenance_started");
+    message(player, pendingMaintenance ? "maintenance_pending" : "maintenance_started");
   }
 
   boolean bind(TransportBlockEntity tile) {

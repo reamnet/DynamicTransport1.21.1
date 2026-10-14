@@ -15,6 +15,16 @@ public final class ElevatorGameTests {
   private static final BlockPos PLATFORM = new BlockPos(3, 2, 3);
   private static final BlockPos MARKER = new BlockPos(5, 8, 3);
 
+  private static void enableMenuChannel(net.minecraft.server.level.ServerPlayer player) {
+    // GameTest mock clients skip the network handshake. Advertise the screen payload that a
+    // real NeoForge client supports, keeping the normal packet validation and menu dispatch.
+    net.neoforged.neoforge.network.registration.NetworkRegistry.onMinecraftRegister(
+        player.connection.getConnection(),
+        java.util.Set.of(
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
+                "neoforge", "advanced_open_screen")));
+  }
+
   private static void clickWithTool(
       GameTestHelper helper,
       net.minecraft.server.level.ServerPlayer player,
@@ -58,14 +68,21 @@ public final class ElevatorGameTests {
           selected.contains("Controller")
               && selected.getLong("Controller") == c.getBlockPos().asLong(),
           "Tool must select the computer");
+      helper.assertTrue(c.isSelectedForMaintenance(player), "Selected computer should be green");
+      helper.assertTrue(
+          !platform.isSelectedForMaintenance(player), "Unbound platform must not be green");
       clickWithTool(helper, player, PLATFORM, false);
       helper.assertTrue(
           c.getBlockPos().equals(platform.controller) && c.platforms.size() == 1,
           "Tool click should bind platform to the selected computer");
+      helper.assertTrue(
+          platform.isSelectedForMaintenance(player), "Newly bound platform should be green");
       clickWithTool(helper, player, MARKER, false);
       helper.assertTrue(
           c.getBlockPos().equals(marker.controller) && c.markers.size() == 1,
           "Tool click should bind floor marker");
+      helper.assertTrue(
+          marker.isSelectedForMaintenance(player), "Newly bound marker should be green");
       clickWithTool(helper, player, PLATFORM, false);
       helper.assertTrue(
           platform.overlay == 1 << net.minecraft.core.Direction.UP.get3DDataValue(),
@@ -73,6 +90,8 @@ public final class ElevatorGameTests {
       clickWithTool(helper, player, MARKER, true);
       helper.assertTrue(
           marker.controller == null && c.markers.isEmpty(), "Sneak-click must unbind marker");
+      helper.assertTrue(
+          !marker.isSelectedForMaintenance(player), "Unbinding must remove green feedback");
       clickWithTool(helper, player, PLATFORM, true);
       helper.assertTrue(
           platform.controller == null && c.platforms.isEmpty(), "Sneak-click must unbind platform");
@@ -80,6 +99,8 @@ public final class ElevatorGameTests {
       helper.assertTrue(
           !c.maintenance && c.technician == null,
           "Second sneak-click should end maintenance exactly once");
+      helper.assertTrue(
+          !c.isSelectedForMaintenance(player), "Finishing maintenance must remove the highlight");
       helper.assertTrue(
           !tool.has(net.minecraft.core.component.DataComponents.CUSTOM_DATA),
           "Finishing maintenance should clear the selected computer");
@@ -295,6 +316,152 @@ public final class ElevatorGameTests {
     player.setPos(pos.getX() + 100, pos.getY(), pos.getZ());
     helper.assertTrue(
         !menu.configure(player, "Remote", pos.getY()), "Remote menu edit must be rejected");
+    helper.succeed();
+  }
+
+  @GameTest(template = "empty", timeoutTicks = 200)
+  public static void floorMarkerCallsWithSetupToolAfterMaintenance(GameTestHelper helper) {
+    var c = setup(helper, false);
+    var player = helper.makeMockServerPlayerInLevel();
+    enableMenuChannel(player);
+    var tool = new net.minecraft.world.item.ItemStack(DynamicTransport.TOOL.get());
+    player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, tool);
+    try {
+      // An old selected tool must not turn an ordinary floor call into a maintenance action.
+      var data = new CompoundTag();
+      data.putLong("Controller", c.getBlockPos().asLong());
+      data.putString("Dimension", helper.getLevel().dimension().location().toString());
+      tool.set(
+          net.minecraft.core.component.DataComponents.CUSTOM_DATA,
+          net.minecraft.world.item.component.CustomData.of(data));
+      clickWithTool(helper, player, MARKER, false);
+      helper.assertTrue(
+          player.containerMenu instanceof TransportMenu,
+          "Operational marker should open floor selection even with a previously selected tool");
+      var menu = (TransportMenu) player.containerMenu;
+      helper.assertTrue(
+          !menu.info.getBoolean("Editing"),
+          "Operational marker must open call controls, not configuration");
+      helper.assertTrue(
+          menu.clickMenuButton(player, 0), "Player should be able to queue the marker's floor");
+      player.closeContainer();
+      tool.remove(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
+      clickWithTool(helper, player, MARKER, false);
+      helper.assertTrue(
+          player.containerMenu instanceof TransportMenu,
+          "An unselected tool must also allow normal floor calls");
+      player.closeContainer();
+      player.setItemInHand(
+          net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY);
+      clickWithTool(helper, player, MARKER, false);
+      helper.assertTrue(
+          player.containerMenu instanceof TransportMenu,
+          "Empty-hand floor selection must still work");
+      player.closeContainer();
+    } finally {
+      helper.getLevel().getServer().getPlayerList().remove(player);
+    }
+    helper.succeedWhen(
+        () -> helper.assertBlockPresent(DynamicTransport.ELEVATOR.get(), new BlockPos(3, 6, 3)));
+  }
+
+  @GameTest(template = "empty")
+  public static void markerRemainsConfigurableAndLockedDuringMaintenance(GameTestHelper helper) {
+    var c = setup(helper, false);
+    var marker = (TransportBlockEntity) helper.getBlockEntity(MARKER);
+    var player = helper.makeMockServerPlayerInLevel();
+    enableMenuChannel(player);
+    player.setItemInHand(
+        net.minecraft.world.InteractionHand.MAIN_HAND,
+        new net.minecraft.world.item.ItemStack(DynamicTransport.TOOL.get()));
+    try {
+      clickWithTool(helper, player, COMPUTER, true);
+      clickWithTool(helper, player, MARKER, false);
+      helper.assertTrue(
+          player.containerMenu instanceof TransportMenu,
+          "Technician should still be able to configure a marker");
+      helper.assertTrue(
+          ((TransportMenu) player.containerMenu).info.getBoolean("Editing"),
+          "Maintenance marker should open its configuration screen");
+      helper.assertTrue(
+          !c.call(marker.getBlockPos().getY() + marker.offset),
+          "Maintenance must continue to block movement calls");
+      helper.assertTrue(
+          marker.isSelectedForMaintenance(player),
+          "Bound marker should be green during maintenance");
+      player.closeContainer();
+      var saved = c.getUpdateTag(helper.getLevel().registryAccess());
+      c.loadCustomOnly(saved, helper.getLevel().registryAccess());
+      helper.assertTrue(
+          marker.isSelectedForMaintenance(player),
+          "Maintenance feedback must survive saved-state loading");
+      player.setItemInHand(
+          net.minecraft.world.InteractionHand.OFF_HAND, player.getMainHandItem().copy());
+      player.setItemInHand(
+          net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY);
+      helper.assertTrue(
+          marker.isSelectedForMaintenance(player),
+          "Holding selected tool in offhand should also highlight");
+      player.setItemInHand(
+          net.minecraft.world.InteractionHand.OFF_HAND, net.minecraft.world.item.ItemStack.EMPTY);
+      helper.assertTrue(
+          !marker.isSelectedForMaintenance(player),
+          "Putting the tool away should remove the highlight");
+      helper.succeed();
+    } finally {
+      helper.getLevel().getServer().getPlayerList().remove(player);
+    }
+  }
+
+  @GameTest(template = "empty")
+  public static void markerExplainsMaintenanceAndUnboundStates(GameTestHelper helper) {
+    var c = setup(helper, false);
+    var marker = (TransportBlockEntity) helper.getBlockEntity(MARKER);
+    var messages = new java.util.ArrayList<String>();
+    var player =
+        new net.minecraft.world.entity.player.Player(
+            helper.getLevel(),
+            BlockPos.ZERO,
+            0,
+            new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "feedback-test")) {
+          @Override
+          public boolean isSpectator() {
+            return false;
+          }
+
+          @Override
+          public boolean isCreative() {
+            return true;
+          }
+
+          @Override
+          public void displayClientMessage(
+              net.minecraft.network.chat.Component message, boolean actionBar) {
+            if (message.getContents()
+                instanceof net.minecraft.network.chat.contents.TranslatableContents text)
+              messages.add(text.getKey());
+          }
+        };
+    c.maintenance = true;
+    c.technician = player.getUUID();
+    marker.interact(
+        player, net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.core.Direction.UP);
+    helper.assertTrue(
+        messages.getLast().equals("message.dynamictransport.maintenance_active"),
+        "Empty-hand use during maintenance should explain that maintenance is already active");
+    c.maintenance = false;
+    c.pendingMaintenance = true;
+    marker.interact(
+        player, net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.core.Direction.UP);
+    helper.assertTrue(
+        messages.getLast().equals("message.dynamictransport.maintenance_pending"),
+        "Pending maintenance must explain that the platform is returning home");
+    marker.controller = null;
+    marker.interact(
+        player, net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.core.Direction.UP);
+    helper.assertTrue(
+        messages.getLast().equals("message.dynamictransport.unbound_component"),
+        "Unbound markers must explain that binding is missing");
     helper.succeed();
   }
 }

@@ -36,4 +36,25 @@ final class OverlayRenderer {
       }
     pose.popPose();
   }
+
+  static void drawMaintenanceHighlight(PoseStack pose, MultiBufferSource buffers) {
+    pose.pushPose();
+    pose.translate(-0.004, -0.004, -0.004);
+    pose.scale(1.008F, 1.008F, 1.008F);
+    var vertices = buffers.getBuffer(RenderType.debugQuads());
+    for (var face : FACES) {
+      for (var point : face) {
+        vertices.addVertex(pose.last(), point[0], point[1], point[2]).setColor(0, 220, 65, 90);
+      }
+    }
+    LevelRenderer.renderLineBox(
+        pose,
+        buffers.getBuffer(RenderType.lines()),
+        new net.minecraft.world.phys.AABB(0, 0, 0, 1, 1, 1),
+        0.1F,
+        1F,
+        0.25F,
+        1F);
+    pose.popPose();
+  }
 }

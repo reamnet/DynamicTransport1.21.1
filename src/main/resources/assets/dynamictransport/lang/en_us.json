@@ -10,7 +10,7 @@
   "screen.dynamictransport.save": "Save",
   "screen.dynamictransport.no_floors": "No bound floor markers",
   "message.dynamictransport.select_computer": "Sneak-use the tool on a computer first.",
-  "message.dynamictransport.maintenance_required": "The elevator must be in maintenance mode.",
+  "message.dynamictransport.maintenance_required": "Maintenance is off. Sneak-right-click the computer with the Elevator Tool to begin.",
   "message.dynamictransport.other_computer": "This block belongs to another computer.",
   "message.dynamictransport.unbound": "Block unbound.",
   "message.dynamictransport.bound": "Block bound.",
@@ -19,5 +19,10 @@
   "message.dynamictransport.technician_busy": "Another technician is maintaining this elevator.",
   "message.dynamictransport.moving": "Wait for the platform to return home.",
   "message.dynamictransport.maintenance_complete": "Elevator maintenance complete.",
-  "message.dynamictransport.maintenance_started": "Maintenance requested. The platform will return home."
+  "message.dynamictransport.maintenance_started": "Maintenance active. Computer selected; right-click elevator blocks with this tool to bind them.",
+  "message.dynamictransport.maintenance_active": "Maintenance is active. Use the selected Elevator Tool to bind blocks; sneak-use it on the computer to finish.",
+  "message.dynamictransport.maintenance_pending": "Waiting for the platform to return home before binding. Clear the shaft if it is stopped.",
+  "message.dynamictransport.computer_unloaded": "The selected computer is not loaded. Return to it and select it again.",
+  "message.dynamictransport.computer_missing": "The selected computer is missing. Sneak-right-click an Elevator Computer with this tool.",
+  "message.dynamictransport.unbound_component": "This block is not bound. Select a computer with the Elevator Tool, then right-click this block."
 }

@@ -16,13 +16,15 @@ Use a full Java 21 JDK, not a JRE. The wrapper downloads Gradle 9.2.1. No publis
 ## Make an elevator
 
 1. Place an **Elevator Computer** below the home platform. Its home floor is one block above the computer.
-2. Sneak-right-click the computer with an **Elevator Tool** to enter maintenance mode and select it. An existing platform returns home before maintenance begins.
+2. Sneak-right-click the computer with an **Elevator Tool** to enter maintenance mode and select it. The selected computer highlights green while you hold the tool. An existing platform returns home before maintenance begins; binding stays locked until it arrives.
 3. Place **Elevator** blocks above/beside the computer and right-click each with the selected tool to bind them. Each platform must be within the configured horizontal binding range of the computer or another platform. Multiple blocks can form a platform; their vertical offsets are preserved.
 4. Place **Floor Markers** alongside the shaft at the desired stops. Bind each with the tool; markers must be within range of a bound platform column. Keep markers outside the platform and rider clearance columns.
 5. Right-click a bound marker again with the tool to name its floor and adjust the stop height (marker Y ±2; default Y−2). Right-click a bound elevator face with the tool to enable/disable its floor-selection button. Right-click the computer with the tool to edit its name.
-6. Sneak-right-click the computer again to finish maintenance. Right-click a marker or enabled platform face to select a floor. A rising redstone signal beside a marker also calls its floor. Calls are queued in order, with duplicate destinations merged.
+6. Sneak-right-click the computer again to finish maintenance. The green highlights disappear. Right-click a marker or enabled platform face to select a floor. Operational markers also open floor selection if you are still holding the tool. A rising redstone signal beside a marker calls its floor. Calls are queued in order, with duplicate destinations merged.
 
 Sneak-use the selected tool on a bound platform or marker during maintenance to unbind it. One technician controls maintenance at a time. Configuration changes are checked by the server for maintenance ownership, interaction distance, and the active menu.
+
+In **1.0.2 and later**, bound platforms and markers highlight green alongside the selected computer during maintenance. Green means the blocks belong to the selected elevator and maintenance is active; finish maintenance before making floor calls. Messages distinguish active maintenance, a pending return home, missing/unloaded computers, and unbound markers.
 
 If sneak-right-clicking the computer does nothing, update both the client and server to **1.0.1 or later**. Version 1.0.0 did not handle Minecraft's sneak-use item path, which prevented selecting computers and unbinding components. Replace the old mod jar rather than keeping both versions installed.
 

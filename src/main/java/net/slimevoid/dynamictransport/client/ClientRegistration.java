@@ -78,6 +78,9 @@ public final class ClientRegistration {
         pose.popPose();
       }
       OverlayRenderer.draw(tile.overlayFaces(), pose, buffers, light);
+      if (tile.isSelectedForMaintenance(Minecraft.getInstance().player)) {
+        OverlayRenderer.drawMaintenanceHighlight(pose, buffers);
+      }
     }
   }
 }
