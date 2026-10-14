@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "dynamictransport:elevator",
+    "dynamictransport:elevator_computer",
+    "dynamictransport:floor_marker"
+  ]
+}

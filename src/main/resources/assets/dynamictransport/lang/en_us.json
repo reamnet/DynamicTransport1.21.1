@@ -1,0 +1,23 @@
+{
+  "itemGroup.dynamictransport": "Dynamic Transport",
+  "block.dynamictransport.elevator": "Elevator",
+  "block.dynamictransport.elevator_computer": "Elevator Computer",
+  "block.dynamictransport.floor_marker": "Floor Marker",
+  "item.dynamictransport.elevator_tool": "Elevator Tool",
+  "screen.dynamictransport.configure": "Elevator Configuration",
+  "screen.dynamictransport.floors": "Select Floor",
+  "screen.dynamictransport.name": "Name",
+  "screen.dynamictransport.save": "Save",
+  "screen.dynamictransport.no_floors": "No bound floor markers",
+  "message.dynamictransport.select_computer": "Sneak-use the tool on a computer first.",
+  "message.dynamictransport.maintenance_required": "The elevator must be in maintenance mode.",
+  "message.dynamictransport.other_computer": "This block belongs to another computer.",
+  "message.dynamictransport.unbound": "Block unbound.",
+  "message.dynamictransport.bound": "Block bound.",
+  "message.dynamictransport.out_of_range": "Bind a nearby platform first (maximum 128 platforms and markers).",
+  "message.dynamictransport.overlay": "Floor selection face toggled.",
+  "message.dynamictransport.technician_busy": "Another technician is maintaining this elevator.",
+  "message.dynamictransport.moving": "Wait for the platform to return home.",
+  "message.dynamictransport.maintenance_complete": "Elevator maintenance complete.",
+  "message.dynamictransport.maintenance_started": "Maintenance requested. The platform will return home."
+}

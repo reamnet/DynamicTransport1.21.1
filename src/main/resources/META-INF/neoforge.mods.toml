@@ -1,0 +1,21 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="Lesser General Public Licence (original project declaration)"
+[[mods]]
+modId="dynamictransport"
+version="1.0.0"
+displayName="Dynamic Transport"
+authors="Slime Void Crew"
+description="""Configurable, moving multiblock elevators for NeoForge."""
+[[dependencies.dynamictransport]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.259,21.2)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.dynamictransport]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="BOTH"

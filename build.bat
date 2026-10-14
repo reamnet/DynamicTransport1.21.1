@@ -1,3 +1,2 @@
 @echo off
-call %CD%\setup.bat
-call %CD%\gradlew.bat build
+call "%~dp0gradlew.bat" build

@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "up": "dynamictransport:block/floor_marker_top",
+    "down": "dynamictransport:block/floor_marker_bottom",
+    "north": "dynamictransport:block/floor_marker_side",
+    "south": "dynamictransport:block/floor_marker_side",
+    "east": "dynamictransport:block/floor_marker_side",
+    "west": "dynamictransport:block/floor_marker_side",
+    "particle": "dynamictransport:block/floor_marker_side"
+  }
+}

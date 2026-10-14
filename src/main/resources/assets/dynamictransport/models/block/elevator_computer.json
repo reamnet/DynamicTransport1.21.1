@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "up": "dynamictransport:block/elevator_computer_top",
+    "down": "dynamictransport:block/elevator_computer_bottom",
+    "north": "dynamictransport:block/elevator_computer_front",
+    "south": "dynamictransport:block/elevator_computer_side",
+    "east": "dynamictransport:block/elevator_computer_side",
+    "west": "dynamictransport:block/elevator_computer_side",
+    "particle": "dynamictransport:block/elevator_computer_side"
+  }
+}
