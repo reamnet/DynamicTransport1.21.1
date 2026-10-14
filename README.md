@@ -24,6 +24,8 @@ Use a full Java 21 JDK, not a JRE. The wrapper downloads Gradle 9.2.1. No publis
 
 Sneak-use the selected tool on a bound platform or marker during maintenance to unbind it. One technician controls maintenance at a time. Configuration changes are checked by the server for maintenance ownership, interaction distance, and the active menu.
 
+If sneak-right-clicking the computer does nothing, update both the client and server to **1.0.1 or later**. Version 1.0.0 did not handle Minecraft's sneak-use item path, which prevented selecting computers and unbinding components. Replace the old mod jar rather than keeping both versions installed.
+
 During maintenance, use a solid block on a component to camouflage it (consumes one block outside creative mode). Use an empty hand to recover its camouflage. Camouflage survives travel and saving, and stationary components inherit its default light emission. Breaking a component drops its camouflage separately.
 
 The shaft must be loaded and clear, with two air blocks of rider clearance above each platform. Obstructed departures remain queued. An obstruction introduced during travel pauses the platform group until cleared; it never overwrites the obstruction. Riders are carried as passengers and may dismount using the normal sneak key.

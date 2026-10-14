@@ -15,6 +15,101 @@ public final class ElevatorGameTests {
   private static final BlockPos PLATFORM = new BlockPos(3, 2, 3);
   private static final BlockPos MARKER = new BlockPos(5, 8, 3);
 
+  private static void clickWithTool(
+      GameTestHelper helper,
+      net.minecraft.server.level.ServerPlayer player,
+      BlockPos relative,
+      boolean sneaking) {
+    BlockPos pos = helper.absolutePos(relative);
+    player.setPos(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5);
+    player.setShiftKeyDown(sneaking);
+    var hand = net.minecraft.world.InteractionHand.MAIN_HAND;
+    var hit =
+        new net.minecraft.world.phys.BlockHitResult(
+            net.minecraft.world.phys.Vec3.atCenterOf(pos),
+            net.minecraft.core.Direction.UP,
+            pos,
+            false);
+    var result =
+        player.gameMode.useItemOn(player, helper.getLevel(), player.getItemInHand(hand), hand, hit);
+    helper.assertTrue(result.consumesAction(), "Tool click should be handled, even while sneaking");
+  }
+
+  @GameTest(template = "empty")
+  public static void toolSelectsBindsUnbindsAndFinishesMaintenance(GameTestHelper helper) {
+    helper.setBlock(COMPUTER, DynamicTransport.COMPUTER.get());
+    helper.setBlock(PLATFORM, DynamicTransport.ELEVATOR.get());
+    helper.setBlock(MARKER, DynamicTransport.MARKER.get());
+    var c = (TransportBlockEntity) helper.getBlockEntity(COMPUTER);
+    var platform = (TransportBlockEntity) helper.getBlockEntity(PLATFORM);
+    var marker = (TransportBlockEntity) helper.getBlockEntity(MARKER);
+    var player = helper.makeMockServerPlayerInLevel();
+    var tool = new net.minecraft.world.item.ItemStack(DynamicTransport.TOOL.get());
+    player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, tool);
+    try {
+      clickWithTool(helper, player, COMPUTER, true);
+      helper.assertTrue(c.canMaintain(player), "Sneak-click should enter maintenance exactly once");
+      var selected =
+          tool.getOrDefault(
+                  net.minecraft.core.component.DataComponents.CUSTOM_DATA,
+                  net.minecraft.world.item.component.CustomData.EMPTY)
+              .copyTag();
+      helper.assertTrue(
+          selected.contains("Controller")
+              && selected.getLong("Controller") == c.getBlockPos().asLong(),
+          "Tool must select the computer");
+      clickWithTool(helper, player, PLATFORM, false);
+      helper.assertTrue(
+          c.getBlockPos().equals(platform.controller) && c.platforms.size() == 1,
+          "Tool click should bind platform to the selected computer");
+      clickWithTool(helper, player, MARKER, false);
+      helper.assertTrue(
+          c.getBlockPos().equals(marker.controller) && c.markers.size() == 1,
+          "Tool click should bind floor marker");
+      clickWithTool(helper, player, PLATFORM, false);
+      helper.assertTrue(
+          platform.overlay == 1 << net.minecraft.core.Direction.UP.get3DDataValue(),
+          "A regular click must toggle a selection face only once");
+      clickWithTool(helper, player, MARKER, true);
+      helper.assertTrue(
+          marker.controller == null && c.markers.isEmpty(), "Sneak-click must unbind marker");
+      clickWithTool(helper, player, PLATFORM, true);
+      helper.assertTrue(
+          platform.controller == null && c.platforms.isEmpty(), "Sneak-click must unbind platform");
+      clickWithTool(helper, player, COMPUTER, true);
+      helper.assertTrue(
+          !c.maintenance && c.technician == null,
+          "Second sneak-click should end maintenance exactly once");
+      helper.assertTrue(
+          !tool.has(net.minecraft.core.component.DataComponents.CUSTOM_DATA),
+          "Finishing maintenance should clear the selected computer");
+      helper.succeed();
+    } finally {
+      helper.getLevel().getServer().getPlayerList().remove(player);
+    }
+  }
+
+  @GameTest(template = "empty")
+  public static void toolSelectsComputerWithOccupiedOffhand(GameTestHelper helper) {
+    helper.setBlock(COMPUTER, DynamicTransport.COMPUTER.get());
+    var c = (TransportBlockEntity) helper.getBlockEntity(COMPUTER);
+    var player = helper.makeMockServerPlayerInLevel();
+    player.setItemInHand(
+        net.minecraft.world.InteractionHand.MAIN_HAND,
+        new net.minecraft.world.item.ItemStack(DynamicTransport.TOOL.get()));
+    player.setItemInHand(
+        net.minecraft.world.InteractionHand.OFF_HAND,
+        new net.minecraft.world.item.ItemStack(Blocks.COBBLESTONE));
+    try {
+      clickWithTool(helper, player, COMPUTER, true);
+      helper.assertTrue(
+          c.canMaintain(player), "An occupied offhand must not prevent computer selection");
+      helper.succeed();
+    } finally {
+      helper.getLevel().getServer().getPlayerList().remove(player);
+    }
+  }
+
   private static TransportBlockEntity setup(GameTestHelper helper, boolean wide) {
     helper.setBlock(COMPUTER, DynamicTransport.COMPUTER.get());
     helper.setBlock(PLATFORM, DynamicTransport.ELEVATOR.get());

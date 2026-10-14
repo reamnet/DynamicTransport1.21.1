@@ -54,7 +54,8 @@ public final class DynamicTransport {
                       .noLootTable()
                       .lightLevel(s -> s.getValue(TransportBlock.LIGHT))));
   public static final DeferredItem<Item> TOOL =
-      ITEMS.register("elevator_tool", () -> new Item(new Item.Properties().stacksTo(1)));
+      ITEMS.register(
+          "elevator_tool", () -> new ElevatorToolItem(new Item.Properties().stacksTo(1)));
   public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TransportBlockEntity>>
       TILE =
           BLOCK_ENTITIES.register(
