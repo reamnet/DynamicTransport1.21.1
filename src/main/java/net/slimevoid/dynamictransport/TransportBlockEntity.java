@@ -263,7 +263,7 @@ public final class TransportBlockEntity extends BlockEntity {
   }
 
   SortedMap<Integer, String> floors() {
-    SortedMap<Integer, String> result = new TreeMap<>();
+    SortedMap<Integer, String> result = new TreeMap<>(Comparator.reverseOrder());
     if (level == null) return result;
     for (BlockPos p : markers) {
       if (level.hasChunkAt(p)

@@ -535,4 +535,52 @@ public final class ElevatorGameTests {
       helper.getLevel().getServer().getPlayerList().remove(player);
     }
   }
+
+  @GameTest(template = "empty")
+  public static void floorsRunFromHighestToLowestWithCorrectCallTargets(GameTestHelper helper) {
+    helper.setBlock(COMPUTER, DynamicTransport.COMPUTER.get());
+    helper.setBlock(PLATFORM, DynamicTransport.ELEVATOR.get());
+    var c = (TransportBlockEntity) helper.getBlockEntity(COMPUTER);
+    var platform = (TransportBlockEntity) helper.getBlockEntity(PLATFORM);
+    helper.assertTrue(c.bind(platform), "Platform must bind");
+    platform.controller = c.getBlockPos();
+    // Deliberately bind in a mixed order, including more floors than fit on one screen.
+    for (int y : new int[] {9, 3, 15, 5, 13, 7, 11}) {
+      var pos = new BlockPos(5, y, 3);
+      helper.setBlock(pos, DynamicTransport.MARKER.get());
+      var marker = (TransportBlockEntity) helper.getBlockEntity(pos);
+      helper.assertTrue(c.bind(marker), "Floor marker must bind");
+      marker.controller = c.getBlockPos();
+      marker.name = "Stop " + y;
+    }
+    var player = helper.makeMockServerPlayerInLevel();
+    enableMenuChannel(player);
+    player.setItemInHand(
+        net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY);
+    try {
+      clickWithTool(helper, player, new BlockPos(5, 9, 3), false);
+      var menu = (TransportMenu) player.containerMenu;
+      var floors = menu.info.getList("Floors", 10);
+      helper.assertTrue(floors.size() == 7, "All floors must be available across pages");
+      for (int index = 0; index < 7; index++) {
+        int markerY = 15 - index * 2;
+        int expectedY = helper.absolutePos(new BlockPos(5, markerY, 3)).getY() - 2;
+        helper.assertTrue(
+            floors.getCompound(index).getInt("Y") == expectedY
+                && floors.getCompound(index).getString("Name").equals("Stop " + markerY),
+            "Higher floors must precede lower floors while keeping their names");
+      }
+      helper.assertTrue(menu.clickMenuButton(player, 0), "Top row must remain callable");
+      helper.assertTrue(
+          menu.clickMenuButton(player, 6), "Bottom row on a later page must remain callable");
+      helper.assertTrue(
+          c.queue.contains(floors.getCompound(0).getInt("Y"))
+              && c.queue.contains(floors.getCompound(6).getInt("Y")),
+          "Reordered buttons must call the displayed floors, not the old indices");
+      player.closeContainer();
+      helper.succeed();
+    } finally {
+      helper.getLevel().getServer().getPlayerList().remove(player);
+    }
+  }
 }

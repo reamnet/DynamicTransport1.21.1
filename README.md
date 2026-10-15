@@ -28,6 +28,8 @@ In **1.0.2 and later**, bound platforms and markers highlight green alongside th
 
 In **1.0.3 and later**, floor controls use a phone-inspired interface with rounded light cards, blue actions, and a current-floor indicator. Named floors show their Y level as secondary information. Long lists support **Back/Next**, the mouse wheel, and Page Up/Page Down. The layout adapts to Minecraft's GUI scale. Custom names survive world saves; automatic labels follow changes to stop height.
 
+In **1.0.4 and later**, floors are listed from highest to lowest, so upper floors appear at the top and lower floors at the bottom, including across pages.
+
 Interface previews: [floor selector](docs/screenshots/floor-selector.png) · [floor details](docs/screenshots/floor-details.png).
 
 If sneak-right-clicking the computer does nothing, update both the client and server to **1.0.1 or later**. Version 1.0.0 did not handle Minecraft's sneak-use item path, which prevented selecting computers and unbinding components. Replace the old mod jar rather than keeping both versions installed.
